@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
 
     <title>Карточка слова</title>
 
@@ -13,9 +13,17 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+            overflow: hidden;              /* экран не должен прокручиваться на телефоне */
+            overscroll-behavior: none;     /* убирает "резиновый" боунс/протяжку окна */
+            touch-action: pan-y;           /* разрешаем вертикальную прокрутку (нужна для списка модулей), но запрещаем масштабирование/горизонтальные жесты */
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
+            min-height: 100dvh;            /* учитывает динамическую высоту вьюпорта в мобильных браузерах */
             font-family: Arial, sans-serif;
             background: #f2f4f8;
             display: flex;
@@ -27,9 +35,11 @@
         .app {
             width: 100%;
             max-width: 320px;
+            max-height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 0;                 /* позволяет дочернему .screen сжиматься и скроллиться, а не выталкивать контент за экран */
         }
 
         .screen {
@@ -46,9 +56,22 @@
 
         #cardScreen.active {
             min-height: calc(100vh - 40px);
+            min-height: calc(100dvh - 40px);
             justify-content: center;
             padding-top: 0;
-            padding-bottom: 160px;
+            padding-bottom: 140px;
+        }
+
+        /* Список модулей может быть длиннее экрана — даём ему собственную прокрутку */
+        #moduleScreen.active {
+            max-height: calc(100vh - 40px);
+            max-height: calc(100dvh - 40px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
+            padding: 4px 4px 24px;         /* небольшой отступ, чтобы контент не прилипал к краям/скроллбару */
         }
 
         .title {
@@ -57,6 +80,27 @@
             color: #222222;
             text-align: center;
             margin-bottom: 10px;
+        }
+
+        /* Кнопка переключения языка — видна поверх обоих экранов */
+        .lang-toggle-btn {
+            position: fixed;
+            top: calc(14px + env(safe-area-inset-top));
+            right: 14px;
+            z-index: 30;
+            border: none;
+            border-radius: 14px;
+            padding: 8px 14px;
+            background: #ffffff;
+            color: #2f80ed;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+        }
+
+        .lang-toggle-btn:active {
+            transform: scale(0.94);
         }
 
         .modules {
@@ -129,14 +173,36 @@
             position: relative;
             touch-action: none;
             user-select: none;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+            /* заставляет браузер отрисовывать элемент на отдельном GPU-слое —
+               убирает "фантомные" пиксели/артефакты по краям при перетаскивании */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform, opacity;
+        }
+
+        /* Свечение позади карточки при свайпе */
+        .card-glow {
+            position: absolute;
+            inset: -34px;
+            border-radius: 34px;
+            filter: blur(38px);
+            opacity: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: rgba(47, 128, 237, 0.85);
         }
 
         .card {
             width: 100%;
             height: 100%;
             position: relative;
+            z-index: 2;
             transform-style: preserve-3d;
             transition: transform 0.7s ease;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .card.flipped {
@@ -149,6 +215,7 @@
             height: 100%;
             border-radius: 20px;
             backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -169,6 +236,13 @@
             color: #ffffff;
             transform: rotateY(180deg);
             font-size: 22px;
+            line-height: 1.3;
+            overflow-y: auto;              /* если текст всё же не влез — можно прокрутить */
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
         }
 
         .swipe-hint {
@@ -206,43 +280,6 @@
             flex-direction: column;
             gap: 14px;
             z-index: 10;
-        }
-
-        .navigation {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.92);
-            border-radius: 22px;
-            padding: 10px 14px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-        }
-
-        .arrow-btn {
-            width: 58px;
-            height: 58px;
-            border: none;
-            border-radius: 50%;
-            background: #2f80ed;
-            color: white;
-            font-size: 34px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-            transition: 0.2s ease;
-        }
-
-        .arrow-btn:active {
-            transform: scale(0.92);
-        }
-
-        .counter {
-            font-size: 17px;
-            font-weight: bold;
-            color: #555555;
         }
 
         .back-btn {
@@ -306,9 +343,11 @@
 
     <div class="app">
 
+        <button class="lang-toggle-btn" id="langToggleBtn" type="button">EN</button>
+
         <!-- Стартовый экран выбора модуля -->
         <div class="screen active" id="moduleScreen">
-            <div class="title">Выберите модуль</div>
+            <div class="title" id="chooseModuleTitle">Выберите модуль</div>
 
             <!-- Кнопки модулей и прогресс-бары рендерятся динамически в JS -->
             <div class="modules" id="modulesContainer"></div>
@@ -328,6 +367,8 @@
             <div class="status" id="status"></div>
 
             <div class="card-wrapper" id="cardWrapper">
+                <div class="card-glow" id="cardGlow"></div>
+
                 <div class="swipe-hint know" id="swipeRightHint">ЗНАЮ</div>
                 <div class="swipe-hint dont-know" id="swipeLeftHint">НЕ ЗНАЮ</div>
 
@@ -342,18 +383,8 @@
                 </div>
             </div>
 
-            <!-- Нижнее управление -->
+            <!-- Нижнее управление: навигация теперь только свайпами -->
             <div class="bottom-controls">
-                <div class="navigation">
-                    <button class="arrow-btn" id="prevBtn">‹</button>
-
-                    <div class="counter" id="counter">
-                        1 / 3
-                    </div>
-
-                    <button class="arrow-btn" id="nextBtn">›</button>
-                </div>
-
                 <button class="back-btn" id="backBtn">Назад к модулям</button>
                 <button class="reset-btn" id="resetBtn">Сбросить прогресс модуля</button>
             </div>
@@ -372,8 +403,8 @@
 
         //?module=module1
         // const API_BASE_URL = "http://192.168.1.39:8080/api/cards?module=module1"
-        
-        const API_BASE_URL = "https://grain-earth-acrobat-brilliant.trycloudflare.com/api/cards?module=module+1+(units+1234)"
+
+        const API_BASE_URL = "https://accept-scan-leaving-model.trycloudflare.com/api/cards?module=module+1+(units+1234)"
         // Модули по умолчанию — используются, пока не подгрузился список модулей с сервера,
         // либо если запрос списка модулей не удался (см. fetchModulesList).
         const modules = {
@@ -391,25 +422,93 @@
         const moduleScreen = document.getElementById("moduleScreen");
         const cardScreen = document.getElementById("cardScreen");
         const modulesContainer = document.getElementById("modulesContainer");
+        const chooseModuleTitle = document.getElementById("chooseModuleTitle");
 
         const cardWrapper = document.getElementById("cardWrapper");
         const card = document.getElementById("card");
         const cardFront = document.getElementById("cardFront");
         const cardBack = document.getElementById("cardBack");
+        const cardGlow = document.getElementById("cardGlow");
         const swipeRightHint = document.getElementById("swipeRightHint");
         const swipeLeftHint = document.getElementById("swipeLeftHint");
 
-        const prevBtn = document.getElementById("prevBtn");
-        const nextBtn = document.getElementById("nextBtn");
         const backBtn = document.getElementById("backBtn");
         const resetBtn = document.getElementById("resetBtn");
+        const langToggleBtn = document.getElementById("langToggleBtn");
 
-        const counter = document.getElementById("counter");
         const moduleTitle = document.getElementById("moduleTitle");
         const status = document.getElementById("status");
 
         const cardProgressBar = document.getElementById("cardProgressBar");
         const cardProgressText = document.getElementById("cardProgressText");
+
+        // ============================================================
+        // ЯЗЫК ИНТЕРФЕЙСА (RU / EN)
+        // ============================================================
+
+        const LANG_STORAGE_KEY = "flashcards_lang";
+
+        const translations = {
+            ru: {
+                chooseModule: "Выберите модуль",
+                backToModules: "Назад к модулям",
+                resetProgress: "Сбросить прогресс модуля",
+                loadingCards: "Загружаю карточки...",
+                loadingCard: "Загрузка...",
+                loadError: "Ошибка загрузки",
+                noCards: "Нет карточек для этого модуля",
+                know: "ЗНАЮ",
+                dontKnow: "НЕ ЗНАЮ",
+                progress: "Прогресс",
+                resetConfirm: "Сбросить прогресс по этому модулю?",
+                switchTo: "EN"
+            },
+            en: {
+                chooseModule: "Choose a module",
+                backToModules: "Back to modules",
+                resetProgress: "Reset module progress",
+                loadingCards: "Loading cards...",
+                loadingCard: "Loading...",
+                loadError: "Loading error",
+                noCards: "No cards in this module",
+                know: "KNOW",
+                dontKnow: "DON'T KNOW",
+                progress: "Progress",
+                resetConfirm: "Reset progress for this module?",
+                switchTo: "RU"
+            }
+        };
+
+        let currentLang = localStorage.getItem(LANG_STORAGE_KEY) || "ru";
+        if (!translations[currentLang]) {
+            currentLang = "ru";
+        }
+
+        function t(key) {
+            return translations[currentLang][key] || key;
+        }
+
+        function applyLanguage() {
+            document.documentElement.lang = currentLang;
+
+            chooseModuleTitle.textContent = t("chooseModule");
+            backBtn.textContent = t("backToModules");
+            resetBtn.textContent = t("resetProgress");
+            swipeRightHint.textContent = t("know");
+            swipeLeftHint.textContent = t("dontKnow");
+            langToggleBtn.textContent = t("switchTo");
+
+            // если сейчас нет активного модуля — обновлять прогресс/статус не нужно
+            if (currentModule) {
+                updateProgressUI();
+            }
+        }
+
+        langToggleBtn.addEventListener("click", () => {
+            currentLang = currentLang === "ru" ? "en" : "ru";
+            localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+            applyLanguage();
+        });
 
         // ============================================================
         // ХРАНЕНИЕ ПРОГРЕССА В localStorage
@@ -712,11 +811,6 @@
             status.classList.toggle("error", isError);
         }
 
-        function setNavigationDisabled(isDisabled) {
-            prevBtn.disabled = isDisabled;
-            nextBtn.disabled = isDisabled;
-        }
-
         function buildCardsUrl(moduleName) {
             const url = new URL(API_BASE_URL);
             url.searchParams.set("module", moduleName);
@@ -787,7 +881,7 @@
         function showModuleScreen() {
             cardScreen.classList.remove("active");
             moduleScreen.classList.add("active");
-            card.classList.remove("flipped");
+            resetCardFaceInstant();
             setStatus("");
 
             // обновляем прогресс на карточках модулей на случай,
@@ -805,12 +899,10 @@
             cardScreen.classList.add("active");
 
             moduleTitle.textContent = modules[currentModule]?.title || moduleName;
-            cardFront.textContent = "Загрузка...";
+            cardFront.textContent = t("loadingCard");
             cardBack.textContent = "";
-            counter.textContent = "0 / 0";
-            card.classList.remove("flipped");
-            setNavigationDisabled(true);
-            setStatus("Загружаю карточки...");
+            resetCardFaceInstant();
+            setStatus(t("loadingCards"));
 
             try {
                 const cards = await loadCardsForModule(moduleName);
@@ -827,11 +919,10 @@
         }
 
         function showLoadError(message) {
-            card.classList.remove("flipped");
-            cardFront.textContent = "Ошибка загрузки";
+            resetCardFaceInstant();
+            cardFront.textContent = t("loadError");
             cardBack.textContent = message;
-            counter.textContent = "0 / 0";
-            setNavigationDisabled(true);
+            setCardBackFontSize(message);
             setStatus(message, true);
         }
 
@@ -845,42 +936,94 @@
             const { percent } = computeModuleProgress(currentModule, cards);
 
             cardProgressBar.style.width = `${percent}%`;
-            cardProgressText.textContent = `Прогресс: ${percent}%`;
+            cardProgressText.textContent = `${t("progress")}: ${percent}%`;
 
             updateModuleListProgressUI(currentModule, cards);
+        }
+
+        // Мгновенно (без анимации переворота) возвращает карточку лицевой стороной.
+        // Нужно, чтобы при переходе к следующей карточке не было "домаргивания"
+        // переворотом от предыдущей (если она была перевёрнута).
+        function resetCardFaceInstant() {
+            card.style.transition = "none";
+            card.classList.remove("flipped");
+            void card.offsetWidth; // форсируем reflow, чтобы transition:none применился до следующего изменения
+            card.style.transition = "";
+        }
+
+        // Слово на лицевой стороне всегда одного размера (стиль не меняем).
+        // Текст описания на обратной стороне — динамический: чем длиннее текст,
+        // тем меньше шрифт, чтобы он не вылезал за пределы карточки.
+        function setCardBackFontSize(text) {
+            const length = (text || "").length;
+            let fontSize;
+
+            if (length <= 40) {
+                fontSize = 22;
+            } else if (length <= 80) {
+                fontSize = 19;
+            } else if (length <= 140) {
+                fontSize = 16;
+            } else if (length <= 220) {
+                fontSize = 14;
+            } else {
+                fontSize = 12;
+            }
+
+            cardBack.style.fontSize = `${fontSize}px`;
         }
 
         function updateCard() {
             const cards = getCurrentCards();
 
             if (cards.length === 0) {
-                showLoadError("Нет карточек для этого модуля");
+                showLoadError(t("noCards"));
                 return;
             }
 
-            setNavigationDisabled(false);
-            card.classList.remove("flipped");
+            resetCardFaceInstant();
 
             moduleTitle.textContent = modules[currentModule]?.title || currentModule;
             cardFront.textContent = cards[currentIndex].word;
             cardBack.textContent = cards[currentIndex].definition;
-
-            counter.textContent = `${currentIndex + 1} / ${cards.length}`;
+            setCardBackFontSize(cards[currentIndex].definition);
 
             updateProgressUI();
         }
 
         // ============================================================
         // СВАЙПЫ: вправо = "знаю", влево = "не знаю"
+        // Навигация по карточкам теперь только свайпами (кнопки убраны).
         // ============================================================
 
         let dragState = null;
         const SWIPE_THRESHOLD = 90;
         const MOVE_THRESHOLD = 8;
+        const GLOW_MAX_DISTANCE = 140;
+
+        const KNOW_GLOW_COLOR = "rgba(39, 174, 96, 0.85)";
+        const DONT_KNOW_GLOW_COLOR = "rgba(217, 48, 37, 0.85)";
+
+        function updateGlow(dx) {
+            if (dx === 0) {
+                cardGlow.style.opacity = 0;
+                return;
+            }
+
+            cardGlow.style.background = dx > 0 ? KNOW_GLOW_COLOR : DONT_KNOW_GLOW_COLOR;
+            const intensity = Math.min(Math.abs(dx) / GLOW_MAX_DISTANCE, 1);
+            cardGlow.style.opacity = intensity;
+        }
 
         function resetCardWrapperPosition(withTransition) {
-            cardWrapper.style.transition = withTransition ? "transform 0.3s ease" : "none";
-            cardWrapper.style.transform = "translateX(0) rotate(0)";
+            cardWrapper.style.transition = withTransition
+                ? "transform 0.3s ease"
+                : "none";
+            cardWrapper.style.transform = "translateZ(0) translateX(0) rotate(0)";
+
+            cardGlow.style.transition = withTransition ? "opacity 0.25s ease" : "none";
+            cardGlow.style.opacity = 0;
+
             swipeRightHint.style.opacity = 0;
             swipeLeftHint.style.opacity = 0;
         }
@@ -897,16 +1040,23 @@
             const flyRotate = direction === "right" ? 25 : -25;
 
             cardWrapper.style.transition = "transform 0.35s ease, opacity 0.35s ease";
-            cardWrapper.style.transform = `translateX(${flyX}px) rotate(${flyRotate}deg)`;
+            cardWrapper.style.transform = `translateZ(0) translateX(${flyX}px) rotate(${flyRotate}deg)`;
             cardWrapper.style.opacity = "0";
+
+            cardGlow.style.background = direction === "right" ? KNOW_GLOW_COLOR : DONT_KNOW_GLOW_COLOR;
+            cardGlow.style.transition = "opacity 0.35s ease";
+            cardGlow.style.opacity = 1;
+
             swipeRightHint.style.opacity = 0;
             swipeLeftHint.style.opacity = 0;
 
             setTimeout(() => {
                 cardWrapper.style.transition = "none";
-                cardWrapper.style.transform = "translateX(0) rotate(0)";
+                cardWrapper.style.transform = "translateZ(0) translateX(0) rotate(0)";
                 cardWrapper.style.opacity = "1";
-                card.classList.remove("flipped");
+
+                cardGlow.style.transition = "none";
+                cardGlow.style.opacity = 0;
 
                 const moduleState = getModuleState(currentModule);
                 currentIndex = pickNextIndex(cards, moduleState, currentIndex);
@@ -920,6 +1070,7 @@
             dragState = { startX: e.clientX, startY: e.clientY, dx: 0, moved: false };
             cardWrapper.setPointerCapture(e.pointerId);
             cardWrapper.style.transition = "none";
+            cardGlow.style.transition = "none";
         });
 
         cardWrapper.addEventListener("pointermove", (e) => {
@@ -933,12 +1084,18 @@
             }
 
             if (dragState.moved) {
-                cardWrapper.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+                // ограничиваем максимальный сдвиг, чтобы карточку нельзя было
+                // утащить за пределы экрана и "сдвинуть" тем самым окно
+                const clampedDx = Math.max(Math.min(dx, window.innerWidth), -window.innerWidth);
 
-                const rightOpacity = Math.min(Math.max(dx / 100, 0), 1);
-                const leftOpacity = Math.min(Math.max(-dx / 100, 0), 1);
+                cardWrapper.style.transform = `translateZ(0) translateX(${clampedDx}px) rotate(${clampedDx / 18}deg)`;
+
+                const rightOpacity = Math.min(Math.max(clampedDx / 100, 0), 1);
+                const leftOpacity = Math.min(Math.max(-clampedDx / 100, 0), 1);
                 swipeRightHint.style.opacity = rightOpacity;
                 swipeLeftHint.style.opacity = leftOpacity;
+
+                updateGlow(clampedDx);
             }
 
             dragState.dx = dx;
@@ -974,29 +1131,8 @@
         });
 
         // ============================================================
-        // НАВИГАЦИЯ / КНОПКИ
+        // ОСТАЛЬНЫЕ КНОПКИ
         // ============================================================
-
-        nextBtn.addEventListener("click", () => {
-            const cards = getCurrentCards();
-            if (cards.length === 0) return;
-
-            const moduleState = getModuleState(currentModule);
-            currentIndex = pickNextIndex(cards, moduleState, currentIndex);
-            updateCard();
-        });
-
-        prevBtn.addEventListener("click", () => {
-            const cards = getCurrentCards();
-            if (cards.length === 0) return;
-
-            currentIndex--;
-            if (currentIndex < 0) {
-                currentIndex = cards.length - 1;
-            }
-
-            updateCard();
-        });
 
         backBtn.addEventListener("click", () => {
             showModuleScreen();
@@ -1005,7 +1141,7 @@
         resetBtn.addEventListener("click", () => {
             if (!currentModule) return;
 
-            const confirmed = window.confirm("Сбросить прогресс по этому модулю?");
+            const confirmed = window.confirm(t("resetConfirm"));
             if (!confirmed) return;
 
             resetModuleProgress(currentModule);
@@ -1022,6 +1158,8 @@
         // ============================================================
 
         async function init() {
+            applyLanguage();
+
             const moduleList = await fetchModulesList();
             renderModuleButtons(moduleList);
             prefetchAllModulesProgress(moduleList);
