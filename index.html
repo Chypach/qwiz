@@ -9,6 +9,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
+        :root {
+            --cal-level0: #e2e6ee;
+            --cal-level1: #c7dcfb;
+            --cal-level2: #8fbdf7;
+            --cal-level3: #4f97f1;
+            --cal-level4: #2f80ed;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -337,6 +345,292 @@
             opacity: 0.55;
             cursor: not-allowed;
         }
+
+        /* ============================================================
+           СТАТИСТИКА АКТИВНОСТИ
+           ============================================================ */
+
+        .stats-toggle-btn {
+            position: fixed;
+            top: calc(14px + env(safe-area-inset-top));
+            left: 14px;
+            z-index: 30;
+            border: none;
+            border-radius: 14px;
+            padding: 8px 12px;
+            background: #ffffff;
+            color: #2f80ed;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+        }
+
+        .stats-toggle-btn:active {
+            transform: scale(0.94);
+        }
+
+        #statsScreen.active {
+            max-height: calc(100vh - 40px);
+            max-height: calc(100dvh - 40px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
+            padding: 4px 4px 150px;
+        }
+
+        .stats-summary {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 0;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 14px 6px;
+            text-align: center;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-value {
+            font-size: 21px;
+            font-weight: bold;
+            color: #222222;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #777777;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+
+        .stat-best-streak {
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            color: #555555;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #222222;
+            text-align: center;
+        }
+
+        .chart-section, .calendar-section {
+            width: 100%;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-wrap {
+            width: 100%;
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            padding: 0 2px;
+        }
+
+        .chart-bar-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 22px;
+            background: #2f80ed;
+            border-radius: 4px 4px 0 0;
+            min-height: 3px;
+            transition: opacity 0.15s ease;
+        }
+
+        .chart-bar.zero {
+            background: #e2e6ee;
+        }
+
+        .chart-bar-col:active .chart-bar {
+            opacity: 0.7;
+        }
+
+        .chart-bar-label {
+            font-size: 9px;
+            color: #999999;
+            white-space: nowrap;
+        }
+
+        .period-switch {
+            display: flex;
+            gap: 8px;
+        }
+
+        .period-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 8px 16px;
+            background: #eef1f6;
+            color: #555555;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .period-btn.active {
+            background: #2f80ed;
+            color: #ffffff;
+        }
+
+        .calendar-scroll {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+            padding-bottom: 4px;
+        }
+
+        .calendar-inner {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .calendar-months-row {
+            display: flex;
+            gap: 2px;
+            padding-left: 22px;
+        }
+
+        .calendar-month-label {
+            width: 12px;
+            font-size: 9px;
+            color: #999999;
+            flex-shrink: 0;
+            overflow: visible;
+            white-space: nowrap;
+        }
+
+        .calendar-body {
+            display: flex;
+            gap: 4px;
+        }
+
+        .calendar-weekday-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 18px;
+            flex-shrink: 0;
+        }
+
+        .calendar-weekday-label {
+            height: 10px;
+            font-size: 9px;
+            color: #999999;
+            line-height: 10px;
+        }
+
+        .calendar-weeks {
+            display: flex;
+            gap: 2px;
+        }
+
+        .calendar-week-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .cal-cell {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            background: var(--cal-level0);
+            cursor: pointer;
+        }
+
+        .cal-cell.level1 { background: var(--cal-level1); }
+        .cal-cell.level2 { background: var(--cal-level2); }
+        .cal-cell.level3 { background: var(--cal-level3); }
+        .cal-cell.level4 { background: var(--cal-level4); }
+
+        .cal-cell.future {
+            background: transparent;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .calendar-legend {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #999999;
+        }
+
+        .legend-cell {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            background: var(--cal-level0);
+        }
+
+        .legend-cell.level1 { background: var(--cal-level1); }
+        .legend-cell.level2 { background: var(--cal-level2); }
+        .legend-cell.level3 { background: var(--cal-level3); }
+        .legend-cell.level4 { background: var(--cal-level4); }
+
+        .stat-tooltip {
+            position: fixed;
+            z-index: 50;
+            background: #222222;
+            color: #ffffff;
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -100%);
+            transition: opacity 0.15s ease;
+            max-width: 200px;
+            text-align: center;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-tooltip.visible {
+            opacity: 1;
+        }
+
+        .stat-tooltip .tooltip-date {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -344,6 +638,7 @@
     <div class="app">
 
         <button class="lang-toggle-btn" id="langToggleBtn" type="button">EN</button>
+        <button class="stats-toggle-btn" id="statsToggleBtn" type="button">📊</button>
 
         <!-- Стартовый экран выбора модуля -->
         <div class="screen active" id="moduleScreen">
@@ -390,7 +685,58 @@
             </div>
         </div>
 
+        <!-- Экран статистики активности -->
+        <div class="screen" id="statsScreen">
+            <div class="title" id="statsTitle">Statistics</div>
+
+            <div class="stats-summary">
+                <div class="stat-box">
+                    <div class="stat-value" id="statTotalWords">0</div>
+                    <div class="stat-label">📚 <span id="statTotalLabel">Words studied</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="statWeekWords">0</div>
+                    <div class="stat-label">📅 <span id="statWeekLabel">This week</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="statStreak">0</div>
+                    <div class="stat-label">🔥 <span id="statStreakLabel">Current streak</span></div>
+                </div>
+            </div>
+
+            <div class="stat-best-streak">🏆 <span id="statBestStreakLabel">Best streak</span>: <span id="statBestStreak">0</span></div>
+
+            <div class="chart-section">
+                <div class="section-title" id="chartTitle">Words studied per day</div>
+                <div class="chart-wrap" id="dailyChart"></div>
+                <div class="period-switch">
+                    <button class="period-btn active" id="period7Btn" type="button">7 days</button>
+                    <button class="period-btn" id="period30Btn" type="button">30 days</button>
+                </div>
+            </div>
+
+            <div class="calendar-section">
+                <div class="section-title" id="calendarTitle">English Activity</div>
+                <div class="calendar-scroll" id="calendarScroll"></div>
+                <div class="calendar-legend">
+                    <span id="legendLess">Less</span>
+                    <span class="legend-cell"></span>
+                    <span class="legend-cell level1"></span>
+                    <span class="legend-cell level2"></span>
+                    <span class="legend-cell level3"></span>
+                    <span class="legend-cell level4"></span>
+                    <span id="legendMore">More</span>
+                </div>
+            </div>
+
+            <div class="bottom-controls">
+                <button class="back-btn" id="statsBackBtn" type="button">Back to modules</button>
+            </div>
+        </div>
+
     </div>
+
+    <div class="stat-tooltip" id="statTooltip"></div>
 
     <script>
         const tg = window.Telegram?.WebApp;
@@ -404,7 +750,7 @@
         //?module=module1
         // const API_BASE_URL = "http://192.168.1.39:8080/api/cards?module=module1"
 
-        const API_BASE_URL = "https://accept-scan-leaving-model.trycloudflare.com/api/cards?module=module+1+(units+1234)"
+        const API_BASE_URL = "https://addressing-seminars-fellowship-thing.trycloudflare.com/api/cards?module=module+1+(units+1234)"
         // Модули по умолчанию — используются, пока не подгрузился список модулей с сервера,
         // либо если запрос списка модулей не удался (см. fetchModulesList).
         const modules = {
@@ -461,7 +807,24 @@
                 dontKnow: "НЕ ЗНАЮ",
                 progress: "Прогресс",
                 resetConfirm: "Сбросить прогресс по этому модулю?",
-                switchTo: "EN"
+                switchTo: "EN",
+                statistics: "Статистика",
+                wordsStudiedLabel: "Изучено слов",
+                thisWeekLabel: "За неделю",
+                currentStreakLabel: "Текущая серия",
+                bestStreakLabel: "Лучшая серия",
+                wordsPerDayTitle: "Изучено слов по дням",
+                period7: "7 дней",
+                period30: "30 дней",
+                activityTitle: "Активность по английскому",
+                legendLess: "Меньше",
+                legendMore: "Больше",
+                wordsStudiedSuffix: "слов изучено",
+                noWordsStudied: "Слова не изучались",
+                noActivity: "Нет активности",
+                weekdaysShort: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+                monthsShort: ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"],
+                monthsFull: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
             },
             en: {
                 chooseModule: "Choose a module",
@@ -475,7 +838,24 @@
                 dontKnow: "DON'T KNOW",
                 progress: "Progress",
                 resetConfirm: "Reset progress for this module?",
-                switchTo: "RU"
+                switchTo: "RU",
+                statistics: "Statistics",
+                wordsStudiedLabel: "Words studied",
+                thisWeekLabel: "This week",
+                currentStreakLabel: "Current streak",
+                bestStreakLabel: "Best streak",
+                wordsPerDayTitle: "Words studied per day",
+                period7: "7 days",
+                period30: "30 days",
+                activityTitle: "English Activity",
+                legendLess: "Less",
+                legendMore: "More",
+                wordsStudiedSuffix: "words studied",
+                noWordsStudied: "No words studied",
+                noActivity: "No activity",
+                weekdaysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                monthsShort: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                monthsFull: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
             }
         };
 
@@ -501,6 +881,24 @@
             // если сейчас нет активного модуля — обновлять прогресс/статус не нужно
             if (currentModule) {
                 updateProgressUI();
+            }
+
+            // тексты экрана статистики
+            statsTitleEl.textContent = t("statistics");
+            statTotalLabelEl.textContent = t("wordsStudiedLabel");
+            statWeekLabelEl.textContent = t("thisWeekLabel");
+            statStreakLabelEl.textContent = t("currentStreakLabel");
+            statBestStreakLabelEl.textContent = t("bestStreakLabel");
+            chartTitleEl.textContent = t("wordsPerDayTitle");
+            period7Btn.textContent = t("period7");
+            period30Btn.textContent = t("period30");
+            calendarTitleEl.textContent = t("activityTitle");
+            legendLessEl.textContent = t("legendLess");
+            legendMoreEl.textContent = t("legendMore");
+            statsBackBtn.textContent = t("backToModules");
+
+            if (statsScreenOpened) {
+                renderAllStats();
             }
         }
 
@@ -1035,6 +1433,12 @@
             const word = cards[currentIndex].word;
             markCardResult(currentModule, word, direction === "right");
 
+            // В статистику "изучено слов" попадают только карточки,
+            // помеченные как "ЗНАЮ" — свайп влево ("НЕ ЗНАЮ") не считается.
+            if (direction === "right") {
+                recordWordStudy();
+            }
+
             const flyDistance = window.innerWidth;
             const flyX = direction === "right" ? flyDistance : -flyDistance;
             const flyRotate = direction === "right" ? 25 : -25;
@@ -1152,6 +1556,431 @@
 
             updateCard();
         });
+
+        // ============================================================
+        // СТАТИСТИКА АКТИВНОСТИ (Words studied / English Activity)
+        // ============================================================
+        //
+        // Хранится отдельно от прогресса карточек, в собственном ключе
+        // localStorage. Хранятся только дни с активностью (count > 0),
+        // отсутствующие даты при построении графика/календаря считаются 0.
+
+        const ACTIVITY_STORAGE_KEY = "english_activity";
+
+        // Пороги уровней интенсивности календаря вынесены в конфигурацию,
+        // чтобы их можно было легко поменять в одном месте.
+        const ACTIVITY_LEVELS = {
+            level1: 5,
+            level2: 10,
+            level3: 20
+        };
+
+        const CALENDAR_WEEKS_BACK = 53; // с запасом покрывает последние 12 месяцев
+
+        function getActivityData() {
+            try {
+                const raw = localStorage.getItem(ACTIVITY_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : {};
+            } catch (e) {
+                console.warn("Не удалось прочитать статистику активности из localStorage", e);
+                return {};
+            }
+        }
+
+        function saveActivityData(data) {
+            try {
+                localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.warn("Не удалось сохранить статистику активности в localStorage", e);
+            }
+        }
+
+        // Локальная (не UTC) дата пользователя в формате YYYY-MM-DD.
+        function getLocalDateKey(date) {
+            const d = date || new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+        }
+
+        // Единая точка учёта: одно завершённое прохождение карточки =
+        // одно увеличение статистики за сегодня. Вызывается ровно один
+        // раз за один свайп (см. swipeAction) — это и есть защита от
+        // двойного подсчёта, т.к. переворот карточки (тап) эту функцию
+        // не вызывает.
+        function recordWordStudy() {
+            const data = getActivityData();
+            const key = getLocalDateKey();
+            data[key] = (data[key] || 0) + 1;
+            saveActivityData(data);
+            refreshStatsUI();
+        }
+
+        function getWordsForDate(date) {
+            const data = getActivityData();
+            const key = typeof date === "string" ? date : getLocalDateKey(date);
+            return data[key] || 0;
+        }
+
+        function getWordsForLastDays(days) {
+            const data = getActivityData();
+            const today = new Date();
+            const result = [];
+
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const key = getLocalDateKey(d);
+                result.push({ dateKey: key, date: d, count: data[key] || 0 });
+            }
+
+            return result;
+        }
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay(); // 0 = Вс..6 = Сб
+            const diff = day === 0 ? -6 : 1 - day; // сдвиг до понедельника
+            d.setDate(d.getDate() + diff);
+            return d;
+        }
+
+        function getWordsThisWeek() {
+            const data = getActivityData();
+            const monday = getWeekStart(new Date());
+            let total = 0;
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(monday);
+                d.setDate(d.getDate() + i);
+                total += data[getLocalDateKey(d)] || 0;
+            }
+
+            return total;
+        }
+
+        function getTotalWordsStudied() {
+            const data = getActivityData();
+            return Object.values(data).reduce((sum, v) => sum + (Number(v) || 0), 0);
+        }
+
+        function calculateCurrentStreak() {
+            const data = getActivityData();
+            const today = new Date();
+            const todayKey = getLocalDateKey(today);
+            const hasToday = (data[todayKey] || 0) > 0;
+
+            const cursor = new Date(today);
+
+            if (!hasToday) {
+                // сегодня ещё ничего не изучено — серия продолжается,
+                // только если вчера была активность, иначе она равна 0
+                cursor.setDate(cursor.getDate() - 1);
+                const yesterdayKey = getLocalDateKey(cursor);
+                if (!((data[yesterdayKey] || 0) > 0)) {
+                    return 0;
+                }
+            }
+
+            let streak = 0;
+            while (true) {
+                const key = getLocalDateKey(cursor);
+                if ((data[key] || 0) > 0) {
+                    streak++;
+                    cursor.setDate(cursor.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        // Best streak считается заново из полной истории, поэтому он
+        // никогда не уменьшается сам по себе — только растёт вместе с данными.
+        function calculateBestStreak() {
+            const data = getActivityData();
+            const activeDates = Object.keys(data)
+                .filter(k => (data[k] || 0) > 0)
+                .sort();
+
+            if (activeDates.length === 0) return 0;
+
+            let best = 1;
+            let current = 1;
+
+            for (let i = 1; i < activeDates.length; i++) {
+                const prev = new Date(activeDates[i - 1] + "T00:00:00");
+                const curr = new Date(activeDates[i] + "T00:00:00");
+                const diffDays = Math.round((curr - prev) / 86400000);
+
+                current = diffDays === 1 ? current + 1 : 1;
+                if (current > best) best = current;
+            }
+
+            return best;
+        }
+
+        function computeActivityLevel(count) {
+            if (!count || count <= 0) return 0;
+            if (count <= ACTIVITY_LEVELS.level1) return 1;
+            if (count <= ACTIVITY_LEVELS.level2) return 2;
+            if (count <= ACTIVITY_LEVELS.level3) return 3;
+            return 4;
+        }
+
+        function formatFullDate(date) {
+            const day = date.getDate();
+            const year = date.getFullYear();
+            const months = translations[currentLang].monthsFull;
+
+            return currentLang === "ru"
+                ? `${day} ${months[date.getMonth()]} ${year}`
+                : `${months[date.getMonth()]} ${day}, ${year}`;
+        }
+
+        // ------------------------------------------------------------
+        // UI: элементы
+        // ------------------------------------------------------------
+
+        const statsScreen = document.getElementById("statsScreen");
+        const statsToggleBtn = document.getElementById("statsToggleBtn");
+        const statsBackBtn = document.getElementById("statsBackBtn");
+
+        const statsTitleEl = document.getElementById("statsTitle");
+        const statTotalWordsEl = document.getElementById("statTotalWords");
+        const statTotalLabelEl = document.getElementById("statTotalLabel");
+        const statWeekWordsEl = document.getElementById("statWeekWords");
+        const statWeekLabelEl = document.getElementById("statWeekLabel");
+        const statStreakEl = document.getElementById("statStreak");
+        const statStreakLabelEl = document.getElementById("statStreakLabel");
+        const statBestStreakEl = document.getElementById("statBestStreak");
+        const statBestStreakLabelEl = document.getElementById("statBestStreakLabel");
+
+        const chartTitleEl = document.getElementById("chartTitle");
+        const dailyChartEl = document.getElementById("dailyChart");
+        const period7Btn = document.getElementById("period7Btn");
+        const period30Btn = document.getElementById("period30Btn");
+
+        const calendarTitleEl = document.getElementById("calendarTitle");
+        const calendarScrollEl = document.getElementById("calendarScroll");
+        const legendLessEl = document.getElementById("legendLess");
+        const legendMoreEl = document.getElementById("legendMore");
+
+        const statTooltipEl = document.getElementById("statTooltip");
+
+        let currentChartPeriod = 7;
+        let statsScreenOpened = false;
+
+        function showStatsScreen() {
+            moduleScreen.classList.remove("active");
+            cardScreen.classList.remove("active");
+            statsScreen.classList.add("active");
+            statsScreenOpened = true;
+            hideStatTooltip();
+            renderAllStats();
+        }
+
+        function hideStatsScreen() {
+            statsScreen.classList.remove("active");
+            statsScreenOpened = false;
+            hideStatTooltip();
+            moduleScreen.classList.add("active");
+        }
+
+        function showStatTooltip(anchorEl, lines) {
+            const rect = anchorEl.getBoundingClientRect();
+            statTooltipEl.innerHTML = lines
+                .map((line, i) => `<div${i === 0 ? ' class="tooltip-date"' : ""}>${line}</div>`)
+                .join("");
+            statTooltipEl.style.left = `${rect.left + rect.width / 2}px`;
+            statTooltipEl.style.top = `${rect.top - 8}px`;
+            statTooltipEl.classList.add("visible");
+        }
+
+        function hideStatTooltip() {
+            statTooltipEl.classList.remove("visible");
+        }
+
+        document.addEventListener("click", (e) => {
+            if (!statTooltipEl.classList.contains("visible")) return;
+            if (e.target.closest(".chart-bar-col") || e.target.closest(".cal-cell")) return;
+            hideStatTooltip();
+        });
+
+        function renderSummary() {
+            statTotalWordsEl.textContent = getTotalWordsStudied();
+            statWeekWordsEl.textContent = getWordsThisWeek();
+            statStreakEl.textContent = calculateCurrentStreak();
+            statBestStreakEl.textContent = calculateBestStreak();
+        }
+
+        function renderDailyChart(days) {
+            currentChartPeriod = days;
+            period7Btn.classList.toggle("active", days === 7);
+            period30Btn.classList.toggle("active", days === 30);
+
+            const items = getWordsForLastDays(days);
+            const max = Math.max(1, ...items.map(i => i.count));
+
+            dailyChartEl.innerHTML = "";
+
+            items.forEach(item => {
+                const col = document.createElement("div");
+                col.className = "chart-bar-col";
+
+                const bar = document.createElement("div");
+                bar.className = "chart-bar" + (item.count === 0 ? " zero" : "");
+                const heightPercent = item.count === 0 ? 3 : Math.max(6, Math.round((item.count / max) * 100));
+                bar.style.height = `${heightPercent}%`;
+                col.appendChild(bar);
+
+                if (days === 7) {
+                    const label = document.createElement("div");
+                    label.className = "chart-bar-label";
+                    label.textContent = t("weekdaysShort")[(item.date.getDay() + 6) % 7];
+                    col.appendChild(label);
+                }
+
+                const tooltipLines = [
+                    formatFullDate(item.date),
+                    item.count > 0 ? `${item.count} ${t("wordsStudiedSuffix")}` : t("noWordsStudied")
+                ];
+
+                col.addEventListener("click", () => showStatTooltip(bar, tooltipLines));
+
+                dailyChartEl.appendChild(col);
+            });
+        }
+
+        function buildCalendarWeeks() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const start = new Date(today);
+            start.setDate(start.getDate() - CALENDAR_WEEKS_BACK * 7);
+            const startDay = start.getDay();
+            start.setDate(start.getDate() + (startDay === 0 ? -6 : 1 - startDay)); // выравниваем на понедельник
+
+            const weeks = [];
+            const cursor = new Date(start);
+
+            while (cursor <= today) {
+                const week = [];
+                for (let i = 0; i < 7; i++) {
+                    week.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + i));
+                }
+                weeks.push(week);
+                cursor.setDate(cursor.getDate() + 7);
+            }
+
+            return { weeks, today };
+        }
+
+        function renderActivityCalendar() {
+            const data = getActivityData();
+            const { weeks, today } = buildCalendarWeeks();
+
+            calendarScrollEl.innerHTML = "";
+
+            const inner = document.createElement("div");
+            inner.className = "calendar-inner";
+
+            // Строка с подписями месяцев — столбцы совпадают со столбцами недель ниже
+            const monthsRow = document.createElement("div");
+            monthsRow.className = "calendar-months-row";
+
+            let lastLabeledMonth = -1;
+            weeks.forEach(week => {
+                const label = document.createElement("div");
+                label.className = "calendar-month-label";
+
+                const firstOfMonthDay = week.find(d => d.getDate() === 1);
+                if (firstOfMonthDay && firstOfMonthDay.getMonth() !== lastLabeledMonth) {
+                    label.textContent = t("monthsShort")[firstOfMonthDay.getMonth()];
+                    lastLabeledMonth = firstOfMonthDay.getMonth();
+                }
+
+                monthsRow.appendChild(label);
+            });
+
+            // Подписи дней недели (Пн/Вт/.../Вс) + сама сетка
+            const body = document.createElement("div");
+            body.className = "calendar-body";
+
+            const weekdayLabels = document.createElement("div");
+            weekdayLabels.className = "calendar-weekday-labels";
+            const shortNames = t("weekdaysShort");
+            shortNames.forEach((name, idx) => {
+                const el = document.createElement("div");
+                el.className = "calendar-weekday-label";
+                // показываем не все подписи, чтобы не загромождать узкую колонку
+                el.textContent = (idx === 0 || idx === 2 || idx === 4) ? name : "";
+                weekdayLabels.appendChild(el);
+            });
+
+            const weeksWrap = document.createElement("div");
+            weeksWrap.className = "calendar-weeks";
+
+            weeks.forEach(week => {
+                const col = document.createElement("div");
+                col.className = "calendar-week-col";
+
+                week.forEach(date => {
+                    const cell = document.createElement("div");
+                    const isFuture = date > today;
+                    const key = getLocalDateKey(date);
+                    const count = data[key] || 0;
+
+                    cell.className = "cal-cell" + (isFuture ? " future" : ` level${computeActivityLevel(count)}`);
+
+                    if (!isFuture) {
+                        const tooltipLines = [
+                            formatFullDate(date),
+                            count > 0 ? `${count} ${t("wordsStudiedSuffix")}` : t("noActivity")
+                        ];
+                        cell.addEventListener("click", () => showStatTooltip(cell, tooltipLines));
+                    }
+
+                    col.appendChild(cell);
+                });
+
+                weeksWrap.appendChild(col);
+            });
+
+            body.appendChild(weekdayLabels);
+            body.appendChild(weeksWrap);
+
+            inner.appendChild(monthsRow);
+            inner.appendChild(body);
+            calendarScrollEl.appendChild(inner);
+
+            // сразу прокручиваем к текущему дню (самая правая часть календаря)
+            calendarScrollEl.scrollLeft = calendarScrollEl.scrollWidth;
+        }
+
+        function renderAllStats() {
+            renderSummary();
+            renderDailyChart(currentChartPeriod);
+            renderActivityCalendar();
+        }
+
+        // Вызывается после recordWordStudy(): обновляет UI мгновенно,
+        // если пользователь сейчас находится на экране статистики.
+        function refreshStatsUI() {
+            if (statsScreenOpened) {
+                renderAllStats();
+            }
+        }
+
+        statsToggleBtn.addEventListener("click", showStatsScreen);
+        statsBackBtn.addEventListener("click", hideStatsScreen);
+        period7Btn.addEventListener("click", () => renderDailyChart(7));
+        period30Btn.addEventListener("click", () => renderDailyChart(30));
 
         // ============================================================
         // ИНИЦИАЛИЗАЦИЯ
